@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Court Interpreter Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --gold: #c9a84c;
+    --gold-light: #e8c96e;
+    --cream: #f7f0e6;
+    --red: #8b1a1a;
+    --green: #1a5c3a;
+    --slate: #2c3e50;
+    --light-slate: #4a6075;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--navy);
+    color: var(--cream);
+    font-family: 'Source Sans 3', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+  .gavel-icon { font-size: 2rem; display: block; margin-bottom: 0.4rem; }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    color: var(--gold);
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+  }
+  header p { color: rgba(247,240,230,0.65); font-size: 0.95rem; margin-top: 0.4rem; }
+
+  /* ---- SCORE BAR ---- */
+  .scorebar {
+    display: flex; justify-content: center; gap: 2rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    position: relative; z-index: 1;
+  }
+  .stat { text-align: center; }
+  .stat .val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--gold);
+    display: block;
+    line-height: 1;
+  }
+  .stat .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.55; }
+
+  /* ---- MODE SELECTOR ---- */
+  .mode-selector {
+    display: flex; justify-content: center; gap: 0.5rem;
+    padding: 1rem;
+    flex-wrap: wrap;
+    position: relative; z-index: 1;
+  }
+  .mode-btn {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.35);
+    color: rgba(247,240,230,0.7);
+    padding: 0.45rem 1rem;
+    border-radius: 2rem;
+    cursor: pointer;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .mode-btn:hover, .mode-btn.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  /* ---- MAIN GAME AREA ---- */
+  .game-wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 4rem;
+    position: relative; z-index: 1;
+  }
+
+  /* ---- PHRASE CARD ---- */
+  .phrase-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 1.2rem;
+    padding: 2rem 2.2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .phrase-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 5px; height: 100%;
+    background: var(--gold);
+    border-radius: 1rem 0 0 1rem;
+  }
+  .phrase-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    margin-bottom: 0.6rem;
+    opacity: 0.8;
+  }
+  .phrase-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.2rem, 3vw, 1.65rem);
+    line-height: 1.35;
+    color: var(--cream);
+  }
+  .phrase-number {
+    position: absolute;
+    top: 1rem; right: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    color: rgba(201,168,76,0.1);
+    line-height: 1;
+  }
+  .context-badge {
+    display: inline-block;
+    margin-top: 0.8rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 1rem;
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.25);
+    font-size: 0.75rem;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- GAME MODES ---- */
+
+  /* Multiple Choice */
+  .choices { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+  .choice-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    padding: 1rem 1.3rem;
+    color: var(--cream);
+    cursor: pointer;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 1rem;
+    text-align: left;
+    transition: all 0.18s;
+    line-height: 1.4;
+  }
+  .choice-btn:hover:not(:disabled) {
+    background: rgba(201,168,76,0.1);
+    border-color: rgba(201,168,76,0.5);
+    transform: translateX(4px);
+  }
+  .choice-btn.correct { background: rgba(26,92,58,0.4); border-color: #3aaa70; color: #7fe0a8; }
+  .choice-btn.wrong { background: rgba(139,26,26,0.4); border-color: #c0392b; color: #f08080; }
+  .choice-btn:disabled { cursor: default; }
+  .choice-letter {
+    display: inline-block;
+    width: 1.6rem; height: 1.6rem;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    text-align: center;
+    line-height: 1.6rem;
+    font-size: 0.8rem;
+    margin-right: 0.7rem;
+    color: var(--gold-light);
+    font-weight: 600;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+
+  /* Typing / Fill in */
+  .type-area {
+    display: flex; flex-direction: column; gap: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .type-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 0.75rem;
+    padding: 1rem 1.2rem;
+    color: var(--cream);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 1.05rem;
+    outline: none;
+    resize: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .type-input:focus { border-color: var(--gold); }
+  .type-input.correct-border { border-color: #3aaa70; }
+  .type-input.wrong-border { border-color: #c0392b; }
+
+  /* Matching */
+  .match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .match-col-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    margin-bottom: 0.3rem;
+    opacity: 0.7;
+  }
+  .match-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.65rem;
+    padding: 0.65rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.18s;
+    line-height: 1.35;
+    min-height: 3rem;
+    display: flex; align-items: center;
+  }
+  .match-item:hover:not(.matched):not(.selected) {
+    background: rgba(201,168,76,0.1);
+    border-color: rgba(201,168,76,0.5);
+  }
+  .match-item.selected { background: rgba(201,168,76,0.18); border-color: var(--gold); }
+  .match-item.matched { background: rgba(26,92,58,0.35); border-color: #3aaa70; color: #7fe0a8; cursor: default; opacity: 0.7; }
+  .match-item.wrong-match { background: rgba(139,26,26,0.3); border-color: #c0392b; }
+
+  /* ---- FEEDBACK ---- */
+  .feedback {
+    border-radius: 0.85rem;
+    padding: 1rem 1.3rem;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .feedback.show { display: block; }
+  .feedback.correct-fb { background: rgba(26,92,58,0.3); border: 1px solid #3aaa70; }
+  .feedback.wrong-fb { background: rgba(139,26,26,0.25); border: 1px solid #c0392b; }
+  .feedback-title { font-weight: 600; margin-bottom: 0.3rem; font-size: 1rem; }
+  .feedback.correct-fb .feedback-title { color: #7fe0a8; }
+  .feedback.wrong-fb .feedback-title { color: #f08080; }
+  .note-text { font-size: 0.87rem; opacity: 0.8; margin-top: 0.4rem; font-style: italic; }
+
+  /* ---- BUTTONS ---- */
+  .btn-row { display: flex; gap: 0.8rem; margin-top: 1.2rem; flex-wrap: wrap; }
+  .btn {
+    padding: 0.7rem 1.6rem;
+    border-radius: 0.65rem;
+    border: none;
+    cursor: pointer;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: all 0.18s;
+  }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.4);
+    color: rgba(247,240,230,0.7);
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--cream); }
+
+  /* ---- PROGRESS BAR ---- */
+  .progress-wrap {
+    background: rgba(255,255,255,0.06);
+    border-radius: 1rem;
+    height: 6px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 1rem;
+    transition: width 0.4s ease;
+  }
+
+  /* ---- RESULTS SCREEN ---- */
+  .results-screen {
+    text-align: center;
+    padding: 2rem 1rem;
+    display: none;
+  }
+  .results-screen.show { display: block; animation: fadeUp 0.4s ease; }
+  .results-icon { font-size: 4rem; margin-bottom: 1rem; display: block; }
+  .results-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+  .results-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    color: var(--cream);
+    line-height: 1;
+    margin: 1rem 0;
+  }
+  .results-msg { color: rgba(247,240,230,0.7); font-size: 1.05rem; margin-bottom: 2rem; }
+  .results-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    max-width: 500px;
+    margin: 0 auto 2rem;
+  }
+  .breakdown-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 0.8rem;
+    padding: 1rem;
+  }
+  .breakdown-item .bval {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--gold);
+    display: block;
+  }
+  .breakdown-item .blbl { font-size: 0.75rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-anim { animation: fadeUp 0.3s ease; }
+
+  /* ---- INSTRUCTIONS ---- */
+  .instructions {
+    text-align: center;
+    padding: 0.5rem 0 1rem;
+    font-size: 0.88rem;
+    color: rgba(247,240,230,0.5);
+    font-style: italic;
+  }
+
+  /* Hint */
+  .hint-box {
+    background: rgba(201,168,76,0.07);
+    border: 1px dashed rgba(201,168,76,0.3);
+    border-radius: 0.7rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    color: rgba(247,240,230,0.65);
+    margin-top: 0.8rem;
+    display: none;
+  }
+  .hint-box.show { display: block; }
+  .hint-box strong { color: var(--gold-light); }
+
+  /* streak badge */
+  .streak-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold), #e8a820);
+    color: var(--navy);
+    border-radius: 2rem;
+    padding: 0.15rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    display: none;
+  }
+  .streak-badge.show { display: inline-block; animation: fadeUp 0.3s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="gavel-icon">⚖️</span>
+  <h1>Court Interpreter Challenge</h1>
+  <p>English ↔ Spanish · Legal Terminology Training</p>
+</header>
+
+<div class="scorebar">
+  <div class="stat"><span class="val" id="scoreVal">0</span><span class="lbl">Score</span></div>
+  <div class="stat"><span class="val" id="correctVal">0</span><span class="lbl">Correct</span></div>
+  <div class="stat"><span class="val" id="streakVal">0🔥</span><span class="lbl">Streak</span></div>
+  <div class="stat"><span class="val" id="progressVal">0/20</span><span class="lbl">Progress</span></div>
+</div>
+
+<div class="mode-selector">
+  <button class="mode-btn active" onclick="setMode('mc')" id="btn-mc">🔤 Multiple Choice</button>
+  <button class="mode-btn" onclick="setMode('type')" id="btn-type">✍️ Translate It</button>
+  <button class="mode-btn" onclick="setMode('match')" id="btn-match">🔗 Match Up</button>
+  <button class="mode-btn" onclick="setMode('reverse')" id="btn-reverse">🔄 Reverse Mode</button>
+</div>
+
+<div class="game-wrap">
+  <div id="mainGame">
+    <div class="progress-wrap"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+    <p class="instructions" id="instructionText">Choose the best Spanish translation for the English phrase below.</p>
+    <div id="gameCard" class="card-anim"></div>
+  </div>
+  <div class="results-screen" id="resultsScreen">
+    <span class="results-icon" id="resultsIcon">🏆</span>
+    <div class="results-title">Session Complete!</div>
+    <div class="results-score" id="finalScore">0</div>
+    <p class="results-msg" id="resultsMsg"></p>
+    <div class="results-breakdown">
+      <div class="breakdown-item"><span class="bval" id="bCorrect">0</span><span class="blbl">Correct</span></div>
+      <div class="breakdown-item"><span class="bval" id="bWrong">0</span><span class="blbl">Wrong</span></div>
+      <div class="breakdown-item"><span class="bval" id="bBestStreak">0</span><span class="blbl">Best Streak</span></div>
+    </div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+      <button class="btn btn-secondary" onclick="switchNextMode()">Try Another Mode</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const phrases = [
+  {
+    en: "You have the right to remain silent.",
+    es: "Tiene usted el derecho de guardar silencio.",
+    context: "Miranda Rights",
+    note: "'Guardar silencio' is the standard legal phrasing; 'callarse' is informal and inappropriate in court.",
+    distractors: [
+      "Tiene el permiso de no hablar conmigo.",
+      "Puede usted quedarse callado si quiere.",
+      "No es necesario que diga nada ahora mismo."
+    ]
+  },
+  {
+    en: "Do you swear to tell the truth, the whole truth, and nothing but the truth?",
+    es: "¿Jura usted decir la verdad, toda la verdad y nada más que la verdad?",
+    context: "Oath",
+    note: "The word 'jurar' (to swear an oath) is essential. Avoid 'prometer' which is less legally formal.",
+    distractors: [
+      "¿Promete usted decir sólo cosas verdaderas?",
+      "¿Puede usted confirmar que sus palabras son honestas?",
+      "¿Está dispuesto a ser honesto durante este juicio?"
+    ]
+  },
+  {
+    en: "The defendant pleads not guilty.",
+    es: "El acusado se declara no culpable.",
+    context: "Arraignment",
+    note: "'Se declara' (declares oneself) is the correct courtroom phrasing for entering a plea.",
+    distractors: [
+      "El acusado dice que es inocente.",
+      "El acusado niega haber cometido el crimen.",
+      "El demandado no acepta los cargos."
+    ]
+  },
+  {
+    en: "Objection, Your Honor. Leading the witness.",
+    es: "Objeción, Señoría. El abogado está induciendo al testigo.",
+    context: "Courtroom Objections",
+    note: "'Señoría' is used for judges. 'Su Señoría' is also acceptable. 'Inducing' means the question suggests its own answer.",
+    distractors: [
+      "Protesto, juez. La pregunta es incorrecta.",
+      "Me opongo, señor juez. Eso no es justo.",
+      "Objeción, señor. El testigo está mintiendo."
+    ]
+  },
+  {
+    en: "Sustained.",
+    es: "Ha lugar.",
+    context: "Judge's Ruling",
+    note: "'Ha lugar' is the standard judicial ruling upholding an objection. Avoid 'Correcto' or 'De acuerdo' — they are informal.",
+    distractors: [
+      "Correcto, proceda.",
+      "Estoy de acuerdo con la objeción.",
+      "Se acepta la protesta."
+    ]
+  },
+  {
+    en: "Overruled.",
+    es: "No ha lugar.",
+    context: "Judge's Ruling",
+    note: "'No ha lugar' directly mirrors 'Sustained' but denies the objection. This pair is critical for interpreters to memorize.",
+    distractors: [
+      "La objeción es rechazada.",
+      "Continúe con su pregunta.",
+      "No acepto su protesta, abogado."
+    ]
+  },
+  {
+    en: "The witness may step down.",
+    es: "El testigo puede retirarse.",
+    context: "Testimony",
+    note: "'Retirarse' (to withdraw/step away) is the correct phrasing. 'Bajarse' would refer literally to stepping down from something physical.",
+    distractors: [
+      "El testigo puede irse ahora.",
+      "Puede usted salir de la sala.",
+      "El testigo está libre de marcharse a casa."
+    ]
+  },
+  {
+    en: "I move for a mistrial.",
+    es: "Solicito la nulidad del juicio.",
+    context: "Motions",
+    note: "'Solicitar la nulidad' is the legal term for moving for a mistrial. 'Juicio nulo' is another acceptable phrasing.",
+    distractors: [
+      "Pido que el juicio sea cancelado.",
+      "Solicito comenzar el juicio de nuevo.",
+      "Quiero que se detenga este proceso."
+    ]
+  },
+  {
+    en: "Beyond a reasonable doubt.",
+    es: "Más allá de toda duda razonable.",
+    context: "Standard of Proof",
+    note: "This is a fixed legal phrase. Every word matters — 'toda' (all/any) is typically included in formal usage.",
+    distractors: [
+      "Sin ningún tipo de duda.",
+      "Con suficiente evidencia para condenar.",
+      "Fuera de cualquier posible duda."
+    ]
+  },
+  {
+    en: "The court finds the defendant guilty as charged.",
+    es: "El tribunal declara al acusado culpable de los cargos imputados.",
+    context: "Verdict",
+    note: "'Declara' (declares) is standard for court findings. 'Cargos imputados' refers to the charges as filed.",
+    distractors: [
+      "El juez dice que el acusado es culpable.",
+      "El tribunal confirma que el acusado cometió el crimen.",
+      "Se ha encontrado al acusado responsable de sus acciones."
+    ]
+  },
+  {
+    en: "You are hereby sentenced to five years in prison.",
+    es: "Queda usted condenado a cinco años de prisión.",
+    context: "Sentencing",
+    note: "'Condenado' is the legal term for sentenced. 'Prisión' is more formal than 'cárcel' in sentencing language.",
+    distractors: [
+      "Usted irá a la cárcel por cinco años.",
+      "Se le impone una pena de cinco años.",
+      "Deberá usted pasar cinco años detenido."
+    ]
+  },
+  {
+    en: "Counsel, approach the bench.",
+    es: "Abogado, acérquese al estrado.",
+    context: "Court Procedure",
+    note: "'El estrado' is the judge's bench/podium. 'Acérquese' is the formal imperative of 'acercarse.'",
+    distractors: [
+      "Abogado, venga aquí por favor.",
+      "Letrado, llegue hasta el juez.",
+      "Abogado, avance hasta la tribuna."
+    ]
+  },
+  {
+    en: "The charges against you are as follows.",
+    es: "Los cargos en su contra son los siguientes.",
+    context: "Arraignment",
+    note: "'En su contra' (against you) is the standard formal phrasing. 'Que se le acusan' is more colloquial.",
+    distractors: [
+      "Los crímenes que le atribuyen son estos.",
+      "Usted está acusado de lo siguiente.",
+      "Le acusan de las siguientes faltas."
+    ]
+  },
+  {
+    en: "Do you understand your rights as I have explained them?",
+    es: "¿Entiende usted sus derechos tal y como se los he explicado?",
+    context: "Miranda Rights",
+    note: "'Tal y como' (just as / exactly as) is more precise and formal than 'como' alone. Required in Miranda advisements.",
+    distractors: [
+      "¿Ha comprendido los derechos que le mencioné?",
+      "¿Tiene usted claro lo que le acabo de decir?",
+      "¿Sabe usted cuáles son sus derechos?"
+    ]
+  },
+  {
+    en: "The prosecution rests.",
+    es: "La fiscalía descansa.",
+    context: "Trial Procedure",
+    note: "'La fiscalía' is the prosecution/DA's office. 'Descansar' in this context means the prosecution has concluded presenting evidence.",
+    distractors: [
+      "El fiscal ha terminado su caso.",
+      "La acusación no tiene más preguntas.",
+      "El ministerio público concluye su argumentación."
+    ]
+  },
+  {
+    en: "I hereby grant bail in the amount of ten thousand dollars.",
+    es: "Por la presente, otorgo la libertad bajo fianza por la suma de diez mil dólares.",
+    context: "Bail Hearing",
+    note: "'Por la presente' (hereby) is a legal formalism. 'Fianza' is bail; 'caución' is also accepted in some jurisdictions.",
+    distractors: [
+      "Le doy libertad provisional con una multa de diez mil dólares.",
+      "Puede salir de prisión pagando diez mil dólares.",
+      "Autorizo la fianza de diez mil dólares para este acusado."
+    ]
+  },
+  {
+    en: "Order in the court!",
+    es: "¡Orden en la sala!",
+    context: "Court Decorum",
+    note: "Short, direct, and fixed. 'La sala' refers to the courtroom. This phrase is never changed in formal interpretation.",
+    distractors: [
+      "¡Silencio en el juzgado!",
+      "¡Cállense todos en la corte!",
+      "¡Se pide respeto en este tribunal!"
+    ]
+  },
+  {
+    en: "Counsel, do you wish to cross-examine?",
+    es: "Abogado, ¿desea usted contrainterrogar al testigo?",
+    context: "Examination",
+    note: "'Contrainterrogar' is the precise legal term for cross-examination. Some use 'repreguntar' in Latin American jurisdictions.",
+    distractors: [
+      "¿Quiere usted hacerle más preguntas al testigo?",
+      "¿Le interesa cuestionar la declaración?",
+      "Abogado, ¿tiene preguntas para este testigo?"
+    ]
+  },
+  {
+    en: "The evidence is inadmissible.",
+    es: "La prueba es inadmisible.",
+    context: "Evidence",
+    note: "'La prueba' or 'la evidencia' are both used; 'prueba' is more common in formal legal Spanish. 'Inadmisible' is a direct cognate.",
+    distractors: [
+      "La evidencia no puede usarse en este caso.",
+      "Ese documento no será aceptado por el tribunal.",
+      "No se permite presentar esa prueba aquí."
+    ]
+  },
+  {
+    en: "This court is now in session.",
+    es: "Se declara abierta la sesión.",
+    context: "Court Opening",
+    note: "'Se declara abierta la sesión' is the formal, fixed phrase. Do not substitute 'La corte empieza' — it is too informal.",
+    distractors: [
+      "El tribunal está en funcionamiento.",
+      "La corte ha comenzado sus actividades.",
+      "Damos inicio a la audiencia de hoy."
+    ]
+  }
+];
+
+let currentMode = 'mc';
+let currentIndex = 0;
+let score = 0;
+let correct = 0;
+let wrong = 0;
+let streak = 0;
+let bestStreak = 0;
+let answered = false;
+let shuffledPhrases = [];
+// Matching state
+let matchSelected = null;
+let matchPairs = [];
+let matchCompleted = 0;
+let matchData = [];
+
+const instructions = {
+  mc: 'Choose the best Spanish translation for the English phrase below.',
+  type: 'Type the Spanish translation for the phrase below. Be precise with legal terminology!',
+  match: 'Match each English phrase to its Spanish translation. Click one from each column.',
+  reverse: 'Choose the best English translation for the Spanish phrase below.'
+};
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + mode).classList.add('active');
+  document.getElementById('instructionText').textContent = instructions[mode];
+  restartGame();
+}
+
+function switchNextMode() {
+  const modes = ['mc','type','match','reverse'];
+  const next = modes[(modes.indexOf(currentMode)+1) % modes.length];
+  setMode(next);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function restartGame() {
+  shuffledPhrases = shuffle(phrases);
+  currentIndex = 0; score = 0; correct = 0; wrong = 0; streak = 0; bestStreak = 0;
+  updateScorebar();
+  document.getElementById('resultsScreen').classList.remove('show');
+  document.getElementById('mainGame').style.display = '';
+  renderQuestion();
+}
+
+function updateScorebar() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('correctVal').textContent = correct;
+  document.getElementById('streakVal').textContent = streak + '🔥';
+  document.getElementById('progressVal').textContent = currentIndex + '/20';
+  document.getElementById('progressBar').style.width = (currentIndex/20*100)+'%';
+}
+
+function renderQuestion() {
+  answered = false;
+  if (currentMode === 'match') {
+    renderMatch();
+  } else {
+    const p = shuffledPhrases[currentIndex];
+    if (currentMode === 'mc') renderMC(p);
+    else if (currentMode === 'type') renderType(p);
+    else if (currentMode === 'reverse') renderReverse(p);
+  }
+  updateScorebar();
+}
+
+function renderMC(p) {
+  const opts = shuffle([p.es, ...p.distractors]);
+  const letters = ['A','B','C','D'];
+  document.getElementById('gameCard').innerHTML = `
+    <div class="phrase-card">
+      <div class="phrase-number">${currentIndex+1}</div>
+      <div class="phrase-label">Translate into Spanish</div>
+      <div class="phrase-text">${p.en}</div>
+      <span class="context-badge">📍 ${p.context}</span>
+    </div>
+    <div class="choices">
+      ${opts.map((o,i) => `<button class="choice-btn" onclick="checkMC(this,'${encodeURIComponent(o)}','${encodeURIComponent(p.es)}','${encodeURIComponent(p.note)}')">
+        <span class="choice-letter">${letters[i]}</span>${o}
+      </button>`).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="btn-row" id="nextRow" style="display:none">
+      <button class="btn btn-primary" onclick="nextQuestion()">Next Phrase →</button>
+    </div>
+  `;
+}
+
+function checkMC(btn, chosen, correct_es, note) {
+  if (answered) return;
+  answered = true;
+  const chosen_d = decodeURIComponent(chosen);
+  const correct_d = decodeURIComponent(correct_es);
+  const note_d = decodeURIComponent(note);
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent.includes(correct_d)) b.classList.add('correct');
+  });
+  const fb = document.getElementById('feedback');
+  if (chosen_d === correct_d) {
+    btn.classList.add('correct');
+    handleCorrect(fb, note_d);
+  } else {
+    btn.classList.add('wrong');
+    handleWrong(fb, correct_d, note_d);
+  }
+  document.getElementById('nextRow').style.display = 'flex';
+}
+
+function renderReverse(p) {
+  // Show Spanish, pick English
+  const allEn = shuffle(shuffledPhrases).map(x=>x.en).filter(e=>e!==p.en).slice(0,3);
+  const opts = shuffle([p.en, ...allEn]);
+  const letters = ['A','B','C','D'];
+  document.getElementById('gameCard').innerHTML = `
+    <div class="phrase-card">
+      <div class="phrase-number">${currentIndex+1}</div>
+      <div class="phrase-label">What does this Spanish phrase mean?</div>
+      <div class="phrase-text" style="color:var(--gold-light)">${p.es}</div>
+      <span class="context-badge">📍 ${p.context}</span>
+    </div>
+    <div class="choices">
+      ${opts.map((o,i) => `<button class="choice-btn" onclick="checkReverse(this,'${encodeURIComponent(o)}','${encodeURIComponent(p.en)}','${encodeURIComponent(p.note)}')">
+        <span class="choice-letter">${letters[i]}</span>${o}
+      </button>`).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="btn-row" id="nextRow" style="display:none">
+      <button class="btn btn-primary" onclick="nextQuestion()">Next Phrase →</button>
+    </div>
+  `;
+}
+
+function checkReverse(btn, chosen, correct_en, note) {
+  if (answered) return;
+  answered = true;
+  const chosen_d = decodeURIComponent(chosen);
+  const correct_d = decodeURIComponent(correct_en);
+  const note_d = decodeURIComponent(note);
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => { b.disabled = true; if (b.textContent.includes(correct_d)) b.classList.add('correct'); });
+  const fb = document.getElementById('feedback');
+  if (chosen_d === correct_d) { btn.classList.add('correct'); handleCorrect(fb, note_d); }
+  else { btn.classList.add('wrong'); handleWrong(fb, correct_d, note_d); }
+  document.getElementById('nextRow').style.display = 'flex';
+}
+
+function renderType(p) {
+  document.getElementById('gameCard').innerHTML = `
+    <div class="phrase-card">
+      <div class="phrase-number">${currentIndex+1}</div>
+      <div class="phrase-label">Translate into Spanish</div>
+      <div class="phrase-text">${p.en}</div>
+      <span class="context-badge">📍 ${p.context}</span>
+    </div>
+    <div class="type-area">
+      <textarea class="type-input" id="typeInput" rows="3" placeholder="Type your Spanish translation here…"></textarea>
+      <div class="hint-box" id="hintBox"><strong>Key term hint:</strong> Focus on the legal register — ${p.note.split('.')[0]}.</div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="checkType('${encodeURIComponent(p.es)}','${encodeURIComponent(p.note)}')">Submit →</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('hintBox').classList.toggle('show')">💡 Hint</button>
+    </div>
+    <div class="btn-row" id="nextRow" style="display:none">
+      <button class="btn btn-primary" onclick="nextQuestion()">Next Phrase →</button>
+    </div>
+  `;
+  document.getElementById('typeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); checkType(encodeURIComponent(p.es), encodeURIComponent(p.note)); }
+  });
+}
+
+function normalize(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[¿¡.,;:!?"']/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+function similarity(a, b) {
+  // Simple word overlap ratio
+  const wa = new Set(normalize(a).split(' '));
+  const wb = new Set(normalize(b).split(' '));
+  const common = [...wa].filter(w => wb.has(w)).length;
+  return common / Math.max(wa.size, wb.size);
+}
+
+function checkType(correct_es_enc, note_enc) {
+  if (answered) return;
+  const input = document.getElementById('typeInput');
+  const userAnswer = input.value.trim();
+  if (!userAnswer) return;
+  answered = true;
+  input.disabled = true;
+  const correct_d = decodeURIComponent(correct_es_enc);
+  const note_d = decodeURIComponent(note_enc);
+  const fb = document.getElementById('feedback');
+  const sim = similarity(userAnswer, correct_d);
+  if (sim >= 0.78) {
+    input.classList.add('correct-border');
+    handleCorrect(fb, note_d, `<br><strong>Model answer:</strong> ${correct_d}`);
+  } else if (sim >= 0.5) {
+    input.classList.add('wrong-border');
+    score = Math.max(0, score - 1);
+    fb.innerHTML = `<div class="feedback-title">⚡ Close, but check your phrasing!</div>
+      <strong>Model answer:</strong> ${correct_d}<p class="note-text">${note_d}</p>`;
+    fb.className = 'feedback wrong-fb show';
+    wrong++; streak = 0; updateScorebar();
+  } else {
+    input.classList.add('wrong-border');
+    handleWrong(fb, correct_d, note_d);
+  }
+  document.getElementById('nextRow').style.display = 'flex';
+  updateScorebar();
+}
+
+// Matching mode: show 5 pairs at a time
+function renderMatch() {
+  const start = currentIndex;
+  const end = Math.min(start + 5, 20);
+  matchData = shuffledPhrases.slice(start, end);
+  matchCompleted = 0;
+  matchSelected = null;
+
+  const enItems = shuffle(matchData.map((p,i) => ({id:i, text:p.en})));
+  const esItems = shuffle(matchData.map((p,i) => ({id:i, text:p.es})));
+
+  document.getElementById('gameCard').innerHTML = `
+    <div class="phrase-card" style="margin-bottom:1rem">
+      <div class="phrase-label">Match the English phrase to its correct Spanish equivalent</div>
+      <div class="phrase-text" style="font-size:1rem;font-family:'Source Sans 3',sans-serif;opacity:0.8">Click an English phrase, then its Spanish match. Get all ${matchData.length} correct!</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.3rem">
+      <div class="match-col-label">🇺🇸 English</div>
+      <div class="match-col-label">🇪🇸 Spanish</div>
+    </div>
+    <div class="match-grid" id="matchGrid">
+      ${enItems.map(it=>`<div class="match-item" id="en-${it.id}" onclick="matchClick('en',${it.id})">${it.text}</div>`).join('')}
+      ${esItems.map(it=>`<div class="match-item" id="es-${it.id}" onclick="matchClick('es',${it.id})">${it.text}</div>`).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+  `;
+
+  // Re-arrange: interleave rows
+  const grid = document.getElementById('matchGrid');
+  const enEls = enItems.map(it => document.getElementById('en-'+it.id));
+  const esEls = esItems.map(it => document.getElementById('es-'+it.id));
+  grid.innerHTML = '';
+  for (let i=0;i<matchData.length;i++) {
+    grid.appendChild(enEls[i]);
+    grid.appendChild(esEls[i]);
+  }
+}
+
+let matchSelType = null;
+let matchSelId = null;
+
+function matchClick(type, id) {
+  const el = document.getElementById(type+'-'+id);
+  if (el.classList.contains('matched')) return;
+
+  if (matchSelType === null) {
+    // first selection
+    if (matchSelId !== null) {
+      document.getElementById(matchSelType+'-'+matchSelId).classList.remove('selected');
+    }
+    matchSelType = type; matchSelId = id;
+    el.classList.add('selected');
+  } else if (matchSelType === type) {
+    // same column, switch selection
+    document.getElementById(matchSelType+'-'+matchSelId).classList.remove('selected');
+    matchSelType = type; matchSelId = id;
+    el.classList.add('selected');
+  } else {
+    // different column — check match
+    const firstId = matchSelId;
+    const firstType = matchSelType;
+    document.getElementById(firstType+'-'+firstId).classList.remove('selected');
+    el.classList.remove('selected');
+    matchSelType = null; matchSelId = null;
+
+    // id is the index in matchData
+    // en click has its own id, es has its own — they should be equal if matched
+    let enId = type === 'en' ? id : firstId;
+    let esId = type === 'es' ? id : firstId;
+
+    if (enId === esId) {
+      // correct
+      document.getElementById('en-'+enId).classList.add('matched');
+      document.getElementById('es-'+esId).classList.add('matched');
+      matchCompleted++;
+      score += 3; correct++; streak++;
+      if (streak > bestStreak) bestStreak = streak;
+      updateScorebar();
+      if (matchCompleted === matchData.length) {
+        // round done
+        currentIndex += matchData.length;
+        updateScorebar();
+        const fb = document.getElementById('feedback');
+        fb.innerHTML = `<div class="feedback-title">✅ Round Complete!</div>All ${matchData.length} pairs matched correctly!`;
+        fb.className = 'feedback correct-fb show';
+        setTimeout(() => {
+          if (currentIndex >= 20) { showResults(); } else { renderMatch(); }
+        }, 1800);
+      }
+    } else {
+      // wrong
+      const enEl = document.getElementById('en-'+enId);
+      const esEl = document.getElementById('es-'+esId);
+      enEl.classList.add('wrong-match'); esEl.classList.add('wrong-match');
+      wrong++; streak = 0; score = Math.max(0, score-1);
+      updateScorebar();
+      setTimeout(() => { enEl.classList.remove('wrong-match'); esEl.classList.remove('wrong-match'); }, 700);
+    }
+  }
+}
+
+function handleCorrect(fb, note, extra='') {
+  score += 5; correct++; streak++;
+  if (streak > bestStreak) bestStreak = streak;
+  const streakMsg = streak >= 3 ? ` 🔥 ${streak} in a row!` : '';
+  fb.innerHTML = `<div class="feedback-title">✅ Correct!${streakMsg}</div>${extra}<p class="note-text">💡 ${note}</p>`;
+  fb.className = 'feedback correct-fb show';
+  updateScorebar();
+}
+
+function handleWrong(fb, correct_d, note) {
+  wrong++; streak = 0;
+  fb.innerHTML = `<div class="feedback-title">❌ Not quite.</div><strong>Model answer:</strong> ${correct_d}<p class="note-text">💡 ${note}</p>`;
+  fb.className = 'feedback wrong-fb show';
+  updateScorebar();
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= 20) { showResults(); return; }
+  document.getElementById('gameCard').className = '';
+  void document.getElementById('gameCard').offsetWidth;
+  document.getElementById('gameCard').className = 'card-anim';
+  renderQuestion();
+}
+
+function showResults() {
+  document.getElementById('mainGame').style.display = 'none';
+  const pct = Math.round(correct/20*100);
+  let icon = '🏆', msg = '';
+  if (pct >= 90) { icon='🏆'; msg='Outstanding! You demonstrate expert-level court interpretation skills.'; }
+  else if (pct >= 75) { icon='⭐'; msg='Great work! You have strong command of legal Spanish terminology.'; }
+  else if (pct >= 60) { icon='📚'; msg='Good effort! Review the highlighted phrases and try again.'; }
+  else { icon='💪'; msg='Keep practicing! Focus on fixed legal formulas like rulings and Miranda rights.'; }
+  document.getElementById('resultsIcon').textContent = icon;
+  document.getElementById('finalScore').textContent = score + ' pts';
+  document.getElementById('resultsMsg').textContent = msg;
+  document.getElementById('bCorrect').textContent = correct;
+  document.getElementById('bWrong').textContent = wrong;
+  document.getElementById('bBestStreak').textContent = bestStreak;
+  document.getElementById('resultsScreen').classList.add('show');
+}
+
+// Start
+restartGame();
+</script>
+</body>
+</html>
